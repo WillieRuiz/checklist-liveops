@@ -1,0 +1,95 @@
+#CHECKLIST LIVEOPS#
+
+##Objetivo##
+Caputar todos los puntos de revisión del equipo liveops/Calidad para que NO se nos pase ningun punto a revisar.
+
+Requerimientos generales:
+    - .venv
+    - .env
+    - conexión con google spreadsheet. Sheet ID: 1FNjxtaZGiHlPg6yFBRa55hXOQfIU7J5i
+
+Modelo normalizado (11 entidades)
+Las relaciones quedan así:
+RelaciónCardinalidadNotaINSTALACION → RACK1:NAntes "isla/rack"RACK → PAQUETE_MODULOS1:1Un rack, un paquete de módulosRACK → RACKING1:1Un rack, un sistema de rackingINSTALACION → PAQUETE_INVERSORES1:1INSTALACION → INSTALACION_ELECTRICA1:1INSTALACION_ELECTRICA → SECCION_CANALIZACION1:NINSTALACION_ELECTRICA → GABINETE1:NINSTALACION_ELECTRICA → MEDIDOR_ACOMETIDA1:1INSTALACION → PUESTA_EN_MARCHA1:1PUESTA_EN_MARCHA → MONITOREO1:1PUESTA_EN_MARCHA → SISTEMA_ZNE1:0..1Opcional
+
+Texto para Claude Code — cópialo directo como instrucción:
+## Modelo de datos — Instalación solar fotovoltaica
+
+El dominio describe una **instalación solar** y sus componentes. Hay 11 entidades organizadas en 4 ramas principales.
+
+### Entidades y relaciones
+
+**INSTALACION** — entidad raíz. Tiene un `id_instalacion` (PK), nombre, ubicación y fecha de inicio.
+- 1:N con RACK
+- 1:1 con PAQUETE_INVERSORES
+- 1:1 con INSTALACION_ELECTRICA
+- 1:1 con PUESTA_EN_MARCHA
+
+**RACK** — representa una isla o rack físico de paneles. FK: `id_instalacion`.
+- 1:1 con PAQUETE_MODULOS (los módulos que lleva ese rack)
+- 1:1 con RACKING (el sistema de montaje de ese rack)
+
+**PAQUETE_MODULOS** — el conjunto de paneles de un rack. FK: `id_rack`.
+Campos relevantes: modelo, cantidad, potencia unitaria en Wp.
+
+**RACKING** — el sistema de estructura de soporte de un rack. FK: `id_rack`.
+Campos relevantes: sistema (p.ej. K2), tipo de estructura (EO/NS, filas, elevación).
+
+**PAQUETE_INVERSORES** — los inversores de toda la instalación. FK: `id_instalacion`.
+Campos relevantes: modelo, cantidad, potencia en kW.
+
+**INSTALACION_ELECTRICA** — la instalación eléctrica de balance de planta. FK: `id_instalacion`.
+- 1:N con SECCION_CANALIZACION
+- 1:N con GABINETE
+- 1:1 con MEDIDOR_ACOMETIDA
+
+**SECCION_CANALIZACION** — cada tramo de canalización y cableado. FK: `id_instalacion_electrica`.
+Campos relevantes: descripción, tipo de canalización, longitud en metros, calibre del cable.
+
+**GABINETE** — tableros o gabinetes eléctricos. FK: `id_instalacion_electrica`.
+Campos relevantes: tipo (CC, CA, combinador, etc.), ubicación física.
+
+**MEDIDOR_ACOMETIDA** — el medidor y punto de acometida de la instalación. FK: `id_instalacion_electrica`.
+Uno por instalación eléctrica.
+
+**PUESTA_EN_MARCHA** — el procedimiento de commissioning. FK: `id_instalacion`.
+- 1:1 con MONITOREO
+- 1:0..1 con SISTEMA_ZNE (opcional, solo si aplica exportación cero)
+
+**MONITOREO** — plataforma de monitoreo asociada a la puesta en marcha. FK: `id_puesta_en_marcha`.
+Campos relevantes: plataforma (p.ej. SolarEdge, Fronius Solar.web), ID del sitio.
+
+**SISTEMA_ZNE** — controlador de cero net export. FK: `id_puesta_en_marcha`. 
+Opcional — solo existe si el proyecto requiere limitación de exportación.
+Campos relevantes: modelo del controlador, límite de exportación en kW.
+
+### Reglas de negocio importantes
+- Un RACK pertenece a exactamente una INSTALACION.
+- Cada RACK tiene exactamente un PAQUETE_MODULOS y un RACKING.
+- La INSTALACION_ELECTRICA incluye exactamente un MEDIDOR_ACOMETIDA, pero puede tener varias SECCION_CANALIZACION y varios GABINETE.
+- Toda instalación tiene exactamente una PUESTA_EN_MARCHA con exactamente un MONITOREO.
+- SISTEMA_ZNE es la única entidad opcional en el modelo (0..1).
+
+Etapas de desarrollo
+    MVP:
+        Un checklist simple del lado izquierdo de la pantalla vemos los puntos y del lado derecho vemos los checkbox que el usuario puede ir marcando. 
+        la interfaz obtiene los puntos a revisar de la hoja "Checklist Commissioning" 
+        el usuario va seleccionando las entindades que va revisando y la interfaz le muestra el checklist para esa entidad, cada instalacion debe contar forzosamente con minimo:            - minimo 1 rack
+            - 1 rack
+            - 1 paquete de modulos
+            - 1 inversores
+            - 1 canalización y cableado
+            - 1 gabinetes
+            - 1 medidor y acometida
+            - 1 puesta en marcha
+            - 1 moniotreo
+        cada vez que el usuario termina la revisión de una entidad puede dar clic en un botón de guardar y la revisión se guarda 
+        en la base de datos contenida en el mismo spreadsheet (hay que crear las hojas)
+
+        Capacidades
+            - .venv
+            - .env
+            - conexión con google spreadsheets
+            - ejecutable desde cualquier computadora con internet. de preferencia con streamlit
+
+    
