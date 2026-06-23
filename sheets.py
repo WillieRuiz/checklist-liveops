@@ -113,7 +113,7 @@ def load_saved_reviews(deal_id):
     state = {}
     for r in records:
         if str(r.get("deal_id")) == deal_id:
-            key = (r["entity_id"], r["concepto"], r["check_item"])
+            key = (str(r["entity_id"]), r["concepto"], r["check_item"])
             state[key] = r["checked"] == "True"
     return state
 
@@ -165,11 +165,11 @@ def load_entities(deal_id):
         seen.add(r["entity_id"])
         etype = r["entity_type"]
         if etype == "rack":
-            racks.append({"id": r["entity_id"], "config": r["config"]})
+            racks.append({"id": str(r["entity_id"]), "config": r["config"]})
         elif etype == "gabinete":
-            gabs.append({"id": r["entity_id"], "nombre": r["nombre"]})
+            gabs.append({"id": str(r["entity_id"]), "nombre": r["nombre"]})
         elif etype == "tramo":
-            cans.append({"id": r["entity_id"]})
+            cans.append({"id": str(r["entity_id"])})
         elif etype == "zne":
             has_zne = True
 
