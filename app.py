@@ -78,8 +78,12 @@ def on_deal_change(new_deal):
     st.session_state.deal_id = new_deal
 
     if new_deal:
-        # Restore entity structure from Instalaciones sheet
-        entities = load_entities(new_deal)
+        try:
+            entities = load_entities(new_deal)
+        except Exception as e:
+            st.session_state._load_error = f"load_entities: {e}"
+            entities = {"racks": [], "gabs": [], "cans": [], "has_zne": False}
+
         for rack in entities["racks"]:
             filas, cols = parse_nxm(rack["config"])
             st.session_state.racks.append(
@@ -89,7 +93,6 @@ def on_deal_change(new_deal):
         st.session_state.cans = entities["cans"]
         st.session_state.has_zne = entities["has_zne"]
 
-        # Mark all loaded entities as already persisted so we don't re-save them
         all_ids = (
             [r["id"] for r in entities["racks"]]
             + [g["id"] for g in entities["gabs"]]
@@ -99,10 +102,20 @@ def on_deal_change(new_deal):
             all_ids.append(f"{new_deal}_ZNE")
         st.session_state.persisted_ids = set(all_ids)
 
-        # Restore checkbox state
-        saved = load_saved_reviews(new_deal)
+        try:
+            saved = load_saved_reviews(new_deal)
+        except Exception as e:
+            st.session_state._load_error = f"load_saved_reviews: {e}"
+            saved = {}
+
         st.session_state.checks = saved
         st.session_state.saved = {(eid, c) for eid, c, _ in saved}
+        st.session_state._load_debug = (
+            f"Entidades: {len(entities['racks'])} racks, "
+            f"{len(entities['gabs'])} gabs, {len(entities['cans'])} tramos | "
+            f"Reviews: {len(saved)} ítems, "
+            f"{sum(1 for v in saved.values() if v)} marcados"
+        )
 
     st.rerun()
 
@@ -139,6 +152,11 @@ def render_sidebar(by_concepto):
 
         st.text_input("Tu nombre", placeholder="ej. Ana García", key="_revisor_input")
         st.session_state.revisor = st.session_state.get("_revisor_input", "").strip()
+
+        if st.session_state.get("_load_error"):
+            st.error(st.session_state._load_error)
+        if st.session_state.get("_load_debug"):
+            st.caption(st.session_state._load_debug)
 
         deal = st.session_state.deal_id
         st.divider()
