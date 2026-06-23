@@ -110,13 +110,6 @@ def on_deal_change(new_deal):
 
         st.session_state.checks = saved
         st.session_state.saved = {(eid, c) for eid, c, _ in saved}
-        st.session_state._load_debug = (
-            f"Entidades: {len(entities['racks'])} racks, "
-            f"{len(entities['gabs'])} gabs, {len(entities['cans'])} tramos | "
-            f"Reviews: {len(saved)} ítems, "
-            f"{sum(1 for v in saved.values() if v)} marcados"
-        )
-
     st.rerun()
 
 
@@ -155,8 +148,6 @@ def render_sidebar(by_concepto):
 
         if st.session_state.get("_load_error"):
             st.error(st.session_state._load_error)
-        if st.session_state.get("_load_debug"):
-            st.caption(st.session_state._load_debug)
 
         deal = st.session_state.deal_id
         st.divider()
