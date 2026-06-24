@@ -103,6 +103,7 @@ def on_deal_change(new_deal):
             entities = {"racks": [], "gabs": [], "cans": [],
                         "has_zne": False, "has_lamina": False}
 
+
         for rack in entities["racks"]:
             filas, cols = parse_nxm(rack["config"])
             st.session_state.racks.append(
@@ -110,8 +111,8 @@ def on_deal_change(new_deal):
             )
         st.session_state.gabs = entities["gabs"]
         st.session_state.cans = entities["cans"]
-        st.session_state.has_zne = entities["has_zne"]
-        st.session_state.has_lamina = entities["has_lamina"]
+        st.session_state.has_zne = entities.get("has_zne", False)
+        st.session_state.has_lamina = entities.get("has_lamina", False)
 
         all_ids = (
             [r["id"] for r in entities["racks"]]
