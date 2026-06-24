@@ -157,7 +157,7 @@ def load_entities(deal_id):
 
     records = ws.get_all_records()
     seen = set()
-    racks, gabs, cans, has_zne = [], [], [], False
+    racks, gabs, cans, has_zne, has_lamina = [], [], [], False, False
 
     for r in records:
         if str(r.get("deal_id")) != deal_id or r["entity_id"] in seen:
@@ -172,5 +172,8 @@ def load_entities(deal_id):
             cans.append({"id": str(r["entity_id"])})
         elif etype == "zne":
             has_zne = True
+        elif etype == "lamina":
+            has_lamina = True
 
-    return {"racks": racks, "gabs": gabs, "cans": cans, "has_zne": has_zne}
+    return {"racks": racks, "gabs": gabs, "cans": cans,
+            "has_zne": has_zne, "has_lamina": has_lamina}

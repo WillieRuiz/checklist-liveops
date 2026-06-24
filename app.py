@@ -17,6 +17,22 @@ PER_GAB = ["Gabinetes"]
 PER_CAN = ["Canalización", "Cableado"]
 # Concepto for the optional ZNE system
 ZNE = "ZNE / Smart Meter"
+# Concepto for metal-sheet roof (conditional per rack)
+LAMINA = "Anclajes para lamina"
+
+# Global conceptos for Hito 1 — Evaluación de Techo
+HITO1_CONCEPTOS = [
+    "Preparacion CFE / Instalacion electrica actual",
+    "Estado de la Cubierta",
+    "Riesgos de Filtración y Compatibilidad",
+    "Factibilidad Estructural",
+]
+
+# Global conceptos for Hito 2 — Preparación y Seguridad
+HITO2_CONCEPTOS = [
+    "Seguridad y Delimitación",
+    "Logística y Materiales en Techo",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -31,6 +47,7 @@ def _state_defaults():
         "gabs": [],           # [{"id": str, "nombre": str}]
         "cans": [],           # [{"id": str}]
         "has_zne": False,
+        "has_lamina": False,
         "selected": None,     # (entity_id, concepto) currently shown on the right
         "checks": {},         # {(entity_id, concepto, check_text): bool}
         "saved": set(),       # {(entity_id, concepto)} — has a saved review
@@ -73,7 +90,8 @@ def ck(entity_id, concepto, idx):
 
 def on_deal_change(new_deal):
     defaults = _state_defaults()
-    for k in ("racks", "gabs", "cans", "has_zne", "selected", "checks", "saved", "persisted_ids"):
+    for k in ("racks", "gabs", "cans", "has_zne", "has_lamina",
+              "selected", "checks", "saved", "persisted_ids"):
         st.session_state[k] = defaults[k]
     st.session_state.deal_id = new_deal
 
@@ -82,7 +100,8 @@ def on_deal_change(new_deal):
             entities = load_entities(new_deal)
         except Exception as e:
             st.session_state._load_error = f"load_entities: {e}"
-            entities = {"racks": [], "gabs": [], "cans": [], "has_zne": False}
+            entities = {"racks": [], "gabs": [], "cans": [],
+                        "has_zne": False, "has_lamina": False}
 
         for rack in entities["racks"]:
             filas, cols = parse_nxm(rack["config"])
@@ -92,6 +111,7 @@ def on_deal_change(new_deal):
         st.session_state.gabs = entities["gabs"]
         st.session_state.cans = entities["cans"]
         st.session_state.has_zne = entities["has_zne"]
+        st.session_state.has_lamina = entities["has_lamina"]
 
         all_ids = (
             [r["id"] for r in entities["racks"]]
@@ -100,6 +120,8 @@ def on_deal_change(new_deal):
         )
         if entities["has_zne"]:
             all_ids.append(f"{new_deal}_ZNE")
+        if entities["has_lamina"]:
+            all_ids.append(f"{new_deal}_LAMINA")
         st.session_state.persisted_ids = set(all_ids)
 
         try:
@@ -152,13 +174,46 @@ def render_sidebar(by_concepto):
         deal = st.session_state.deal_id
         st.divider()
 
+        # ---- Hito 1: Evaluación de Techo ----
+        st.markdown("#### Evaluación de Techo")
+        for c in HITO1_CONCEPTOS:
+            if c in by_concepto:
+                nav_btn(c, deal, c)
+
+        st.divider()
+
+        # ---- Hito 2: Preparación y Seguridad ----
+        st.markdown("#### Preparación y Seguridad")
+        for c in HITO2_CONCEPTOS:
+            if c in by_concepto:
+                nav_btn(c, deal, c)
+
+        st.divider()
+
         # ---- Racks ----
         st.markdown("#### Racks")
+
+        lamina_on = st.checkbox(
+            "¿Techo de lámina?",
+            value=st.session_state.has_lamina,
+            key="_lamina_tog",
+        )
+        if lamina_on != st.session_state.has_lamina:
+            st.session_state.has_lamina = lamina_on
+            if lamina_on:
+                lamina_eid = f"{deal}_LAMINA"
+                if lamina_eid not in st.session_state.persisted_ids:
+                    save_entity(deal, "lamina", lamina_eid)
+                    st.session_state.persisted_ids.add(lamina_eid)
+            st.rerun()
+
         for i, rack in enumerate(st.session_state.racks):
             with st.expander(f"Rack {i + 1}  ·  {rack['config']}", expanded=True):
                 for c in PER_RACK:
                     if c in by_concepto:
                         nav_btn(c, rack["id"], c)
+                if st.session_state.has_lamina and LAMINA in by_concepto:
+                    nav_btn("Anclajes para lámina", rack["id"], LAMINA)
 
         with st.expander("➕ Agregar Rack"):
             cfg = st.text_input("Config  (ej. 2x4)", key="_rack_cfg")
@@ -228,7 +283,7 @@ def render_sidebar(by_concepto):
 
         # ---- Puesta en Marcha ----
         st.markdown("#### Puesta en Marcha")
-        for c in ["Puesta en Marcha", "Monitoreo"]:
+        for c in ["Prueba de generacion", "Monitoreo"]:
             if c in by_concepto:
                 nav_btn(c, deal, c)
 
