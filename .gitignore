@@ -1,8 +1,46 @@
+# Dependencies
+node_modules/
 .venv/
+
+# Environment (NEVER commitear)
 .env
+.env.local
+.env.*.local
+supabase/.env
+
+# Credentials (NEVER commitear)
 credentials.JSON
 credentials.json
+*.pem
+
+# Build
+dist/
+build/
+
+# Streamlit legacy
+legacy/.env
+legacy/credentials.JSON
+
+# IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Python
 __pycache__/
 *.pyc
-.DS_Store
-.streamlit/secrets.toml
+*.pyo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Lovable
+.lovable/
+
+# Bun (proyecto usa npm)
+bun.lock
+bun.lockb
+
+# Supabase CLI local state
+supabase/.temp/

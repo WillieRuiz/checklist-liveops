@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    /* Niko yellow */
+    --primary: 53 100% 50%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 0%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 53 100% 50%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 92%;
+    --ring: 53 100% 50%;
+
+    --radius: 0.75rem;
+
+    --niko-yellow: 53 100% 50%;
+    --niko-black: 0 0% 0%;
+    --niko-gray: 0 0% 96%;
+    --success: 142 71% 45%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 53 100% 50%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 92%;
+    --sidebar-ring: 53 100% 50%;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 53 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 53 100% 50%;
+    --accent-foreground: 0 0% 0%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 53 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply tracking-tight;
+    font-feature-settings: "ss01", "cv01";
+  }
+}
+
+@layer components {
+  .niko-prose {
+    @apply text-foreground leading-relaxed;
+  }
+  .niko-prose h1 { @apply text-3xl font-bold mt-8 mb-4; }
+  .niko-prose h2 { @apply text-2xl font-bold mt-6 mb-3; }
+  .niko-prose h3 { @apply text-xl font-semibold mt-5 mb-2; }
+  .niko-prose p { @apply my-3 text-base; }
+  .niko-prose ul { @apply list-disc list-inside my-3 space-y-1; }
+  .niko-prose ol { @apply list-decimal list-inside my-3 space-y-1; }
+  .niko-prose a { @apply text-foreground underline underline-offset-2 font-medium; }
+  .niko-prose strong { @apply font-bold; }
+  .niko-prose code { @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono; }
+  .niko-prose table { @apply w-full border-collapse my-4 text-sm; }
+  .niko-prose th { @apply text-left font-bold p-3 bg-secondary text-secondary-foreground border border-border; }
+  .niko-prose td { @apply p-3 border border-border align-top; }
+  .niko-prose tr:nth-child(even) td { @apply bg-muted/40; }
+  .niko-prose blockquote { @apply border-l-4 border-primary pl-4 italic my-4; }
+}

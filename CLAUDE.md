@@ -4,74 +4,118 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Streamlit checklist application for the Liveops/QA team to review solar photovoltaic installations. Items to review are loaded from a Google Spreadsheet ("Checklist Commissioning" sheet); completed reviews are saved back to the same spreadsheet.
+Unified React + TypeScript web app for the NIKO Liveops/QA team. Combines two previously separate tools:
 
-## Setup
+- **Workflow de Hitos** (built by Luisen): tracks 9 installation milestones (H0–H8), HubSpot deal integration, Slack notifications, escalation protocols.
+- **Checklist de calidad** (built by Guillermo): detailed QA checklist per installation entity (racks, gabinetes, tramos, etc.), items loaded from Google Sheets.
+
+## Tech Stack
+
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + Shadcn UI (Radix primitives)
+- **Backend**: Supabase (PostgreSQL + Auth + Deno Edge Functions)
+- **Auth**: Google OAuth via Supabase
+- **State**: `useReducer` in `useChecklist.ts`; server cache via React Query (TanStack Query v5)
+- **Integrations**: HubSpot (deal data), Slack (notifications), Google Sheets (checklist items, read-only)
+- **Deployment**: Lovable hosting (production) / Vite dev server on port 8080 (local)
+
+## Commands
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env        # then fill in values
-# copy credentials.json (service account key) to project root
+npm install --legacy-peer-deps   # always use --legacy-peer-deps
+npm run dev                      # http://localhost:8080
+npm run build                    # production build
+npm run lint                     # ESLint
+npm run test                     # Vitest (single run)
+npm run test:watch               # Vitest (watch mode)
+npx vitest run src/test/example.test.ts   # run a single test file
 ```
 
-`.env` needs `SPREADSHEET_ID` and `GOOGLE_CREDENTIALS_PATH`. The service account is `ing-checklist@gen-lang-client-0206054621.iam.gserviceaccount.com` — the spreadsheet must be shared with it (editor).
+## Running Locally
 
-## Running the App
+> **Auth note**: Before testing locally, set Supabase → Authentication → URL Configuration → Site URL to `http://localhost:8080`. Restore to `https://nikohitos.lovable.app` before pushing to production.
 
-```bash
-streamlit run app.py
+## TypeScript Config
+
+`tsconfig.json` has lenient settings: `noImplicitAny: false`, `strictNullChecks: false`, `noUnusedLocals: false`. Don't tighten these without coordinating both codebases.
+
+Import alias: `@` → `./src` (configured in both `vite.config.ts` and `tsconfig.json`).
+
+## Project Structure & Ownership
+
+```
+src/
+  features/checklist/     ← GUILLERMO'S TERRITORY
+    lib/types.ts           — constants (PER_RACK, HITO1_CONCEPTOS, etc.) and type definitions
+    lib/api.ts             — Supabase calls: load/save entities and reviews
+    hooks/useChecklist.ts  — all state management (useReducer; equivalent to Streamlit session_state)
+    components/ChecklistSidebar.tsx  — entity tree navigation
+    components/ChecklistPanel.tsx    — checklist items, progress bar, save button
+    ChecklistPage.tsx      — page entry point, route /deal/:dealId/checklist
+    index.ts
+
+  components/hitos/        ← LUISEN'S TERRITORY
+  pages/                   ← LUISEN'S TERRITORY
+  lib/                     ← LUISEN'S TERRITORY
+  contexts/                ← LUISEN'S TERRITORY
+  integrations/            ← SHARED (do not modify supabase/types.ts without coordinating both)
+
+supabase/
+  functions/get-checklist/   ← GUILLERMO'S TERRITORY
+  functions/hubspot-*/       ← LUISEN'S TERRITORY
+  functions/notify-*/        ← LUISEN'S TERRITORY
+  migrations/
+    20260623*  — Luisen's tables (instalaciones)
+    20260625*  — Guillermo's tables (checklist_entidades, checklist_revisiones)
+
+legacy/                    — archived Streamlit/Python code (reference only)
 ```
 
-For Streamlit Cloud deployment, set `SPREADSHEET_ID` and `GOOGLE_CREDENTIALS_PATH` (or embed the JSON) as secrets.
+## Supabase Project
 
-## Data Model — 11 Entities, 4 Branches
+**Project ref**: `vcueafntdgwkcoocaedf`  
+**URL**: `https://vcueafntdgwkcoocaedf.supabase.co`
 
-**Root:** `INSTALACION` (id_instalacion, nombre, ubicación, fecha_inicio)
+### Tables (Guillermo's)
+- `checklist_entidades` — entity structure per deal (racks, gabinetes, tramos, zne, lamina)
+- `checklist_revisiones` — **append-only**: `saveReview()` always INSERTs, never UPDATEs. On load, all rows for the deal are fetched and the latest row per `(entity_id, concepto, check_item)` (ordered by `created_at DESC`) wins. This is the source of truth for restored state.
 
-**Branch 1 — Racks (1:N from INSTALACION):**
-- `RACK` → `PAQUETE_MODULOS` (1:1, modelo/cantidad/Wp)
-- `RACK` → `RACKING` (1:1, sistema/tipo/elevación)
+### Tables (Luisen's)
+- `instalaciones` — hito workflow progress per deal
 
-**Branch 2 — Inversores (1:1 from INSTALACION):**
-- `PAQUETE_INVERSORES` (modelo/cantidad/kW)
+### Edge Functions
+- `get-checklist` — reads "Checklist Commissioning" sheet from Google Sheets using service account JWT auth. Requires secrets: `SPREADSHEET_ID` and `GOOGLE_CREDENTIALS_JSON`.
+- `hubspot-deal` — fetches deal info from HubSpot API
+- `notify-slack`, `send-notification` — Slack notifications
 
-**Branch 3 — Eléctrica (1:1 from INSTALACION):**
-- `INSTALACION_ELECTRICA` → `SECCION_CANALIZACION` (1:N, longitud/calibre)
-- `INSTALACION_ELECTRICA` → `GABINETE` (1:N, tipo CC/CA/combinador)
-- `INSTALACION_ELECTRICA` → `MEDIDOR_ACOMETIDA` (1:1)
+## Google Sheets (Checklist Items)
 
-**Branch 4 — Commissioning (1:1 from INSTALACION):**
-- `PUESTA_EN_MARCHA` → `MONITOREO` (1:1, plataforma/site ID)
-- `PUESTA_EN_MARCHA` → `SISTEMA_ZNE` (0..1, límite de exportación en kW — opcional)
+**Spreadsheet ID**: `1xiNLLqqwyaM2ooDYctzQ4tZikqmjL74WrO5cBJG-sgs`  
+**Sheet**: `Checklist Commissioning` — cols: `Hito | Concepto | Check | Evidencia`  
+**Service account**: `ing-checklist@gen-lang-client-0206054621.iam.gserviceaccount.com`  
+**Credentials file**: `credentials.JSON` (gitignored — never commit)
 
-**Key constraint:** Every installation requires at minimum 1 rack, 1 paquete_modulos, 1 paquete_inversores, 1 seccion_canalizacion, 1 gabinete, 1 medidor_acometida, 1 puesta_en_marcha, and 1 monitoreo. SISTEMA_ZNE is the only optional entity.
+To add new checklist items: edit the Google Sheet directly. The Edge Function reads it fresh on every call (React Query caches it 5 min client-side).
 
-## Google Sheets Architecture
+## Checklist Feature Logic
 
-- **Read:** `Checklist Commissioning` — cols: `Hito | Concepto | Check | Evidencia`. Hito and Concepto cells are sparse (forward-fill applied on load, cached 5 min via `@st.cache_data`).
-- **Write:** single `Revisiones` sheet (auto-created on first save) — cols: `timestamp | deal_id | entity_id | concepto | hito | check_item | checked`. Long format: one row per checklist item per save event. Latest row wins when loading saved state.
+**Concepto → entity mapping** (hardcoded in `types.ts`):
+- `PER_RACK` = ["Anclajes", "Racking", "Montaje de Módulos"] → one review per rack instance
+- `PER_GAB`  = ["Gabinetes"] → one review per gabinete instance
+- `PER_CAN`  = ["Canalización", "Cableado"] → one review per tramo instance
+- `LAMINA_CONCEPTO` = "Anclajes para lamina" → per rack, only when `hasLamina = true`
+- `ZNE_CONCEPTO` = "ZNE / Smart Meter" → single review, only when `hasZne = true`
+- All others → scoped to `deal_id` directly (global sections like Hito 1/2, Inversores, etc.)
 
-## Application Architecture (`app.py` + `sheets.py`)
+**Entity IDs**: `{dealId}_R1`, `{dealId}_GAB1`, `{dealId}_CAN1`, `{dealId}_ZNE`, `{dealId}_LAMINA`
 
-**State model (`st.session_state`):**
-- `deal_id` — active installation identifier (typed by user)
-- `racks / gabs / cans` — lists of entity instances added during the session; each has a generated `id` (`{deal}_R1`, `{deal}_GAB1`, `{deal}_CAN1`)
-- `checks` — `{(entity_id, concepto, check_text): bool}` — canonical checkbox state; populated from `Revisiones` on deal load
-- `saved` — `{(entity_id, concepto)}` — drives ✅ indicator in the nav tree
-- `selected` — `(entity_id, concepto)` currently shown on the right panel
+**Check key format**: `${entityId}||${concepto}||${checkItem}` (see `makeCheckKey()` in `types.ts`)
 
-**Concepto → entity instance mapping (hardcoded in `app.py`):**
-- `Anclajes`, `Racking`, `Montaje de Módulos` → per-rack (each rack gets its own review)
-- `Gabinetes` → per-gabinete instance
-- `Canalización`, `Cableado` → per-tramo instance (same entity, two separate conceptos)
-- All others (`Puesta a Tierra`, `Inversores`, `Medidor / Acometida`, `Puesta en Marcha`, `Monitoreo`, `ZNE / Smart Meter`) → scoped to `deal_id` directly
+**State**: managed by `useChecklist` hook (useReducer). Entities and reviews loaded from Supabase on mount. Reviewer = authenticated Google user (no manual name input).
 
-**Checkbox widget keys** are built by `ck(entity_id, concepto, idx)` — a sanitized string that encodes entity+concepto+position. Widget state (`st.session_state[widget_key]`) takes precedence over `checks` dict for the progress bar so it stays accurate within the same render cycle.
+## Routing
 
-**Deal change** clears all session state and reloads saved reviews from the sheet before rerunning.
+- `/` → Hitos (Luisen's pipeline overview)
+- `/deal/:dealId` → DealWorkflow (Luisen's hito workflow)
+- `/deal/:dealId/checklist` → ChecklistPage (Guillermo's QA checklist)
 
-## UI Layout
-
-Sidebar: Deal ID input → entity navigation tree (rack expanders + add buttons for gabs/cans/racks, ZNE checkbox). Main area: progress bar → checklist grouped by `Hito` subheaders → "Guardar revisión" button.
+The "Abrir checklist de calidad" button in `HitoWorkflow.tsx` links to `/deal/:dealId/checklist` (internal React Router `<Link>`).
